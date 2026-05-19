@@ -8,11 +8,11 @@
 void
 CO5300_init(co5300_config_t *config)
 {
-  uint gpio_mask = 1 << config->pwr_pin | 1 << config->rst_pin | 1 << config->cs_pin;
+  uint gpio_mask = 1u << config->pwr_pin | 1u << config->rst_pin | 1u << config->cs_pin;
   gpio_init_mask(gpio_mask);
   gpio_set_dir_out_masked(gpio_mask);
 
-  gpio_put(config->cs_pin, 1);
+  gpio_put(config->cs_pin, true);
 
   PIO pio;
   uint sm;
@@ -49,10 +49,11 @@ void
 CO5300_qspi1_write_byte(co5300_config_t *config, uint8_t value)
 {
   PIO pio = pio_get_instance(config->pio_num);
-  pio_sm_put_blocking(pio, config->sm, (uint32_t)(value & 0x80) << 21 | (uint32_t)(value & 0x40) << 18);
-  pio_sm_put_blocking(pio, config->sm, (uint32_t)(value & 0x20) << 23 | (uint32_t)(value & 0x10) << 20);
-  pio_sm_put_blocking(pio, config->sm, (uint32_t)(value & 0x08) << 25 | (uint32_t)(value & 0x04) << 22);
-  pio_sm_put_blocking(pio, config->sm, (uint32_t)(value & 0x02) << 27 | (uint32_t)(value & 0x01) << 24);
+  uint32_t _value = (uint32_t)value;
+  pio_sm_put_blocking(pio, config->sm, (_value & 0x80) << 21 | (_value & 0x40) << 18);
+  pio_sm_put_blocking(pio, config->sm, (_value & 0x20) << 23 | (_value & 0x10) << 20);
+  pio_sm_put_blocking(pio, config->sm, (_value & 0x08) << 25 | (_value & 0x04) << 22);
+  pio_sm_put_blocking(pio, config->sm, (_value & 0x02) << 27 | (_value & 0x01) << 24);
 }
 
 void

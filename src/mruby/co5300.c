@@ -22,11 +22,11 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "iiiii", &pwr_pin, &rst_pin, &cs_pin, &sclk_pin, &d0_pin);
 
   co5300_config_t *config = (co5300_config_t *)mrb_malloc(mrb, sizeof(co5300_config_t));
-  config->pwr_pin  = (uint)pwr_pin;
-  config->rst_pin  = (uint)rst_pin;
-  config->cs_pin   = (uint)cs_pin;
-  config->sclk_pin = (uint)sclk_pin;
-  config->d0_pin   = (uint)d0_pin;
+  config->pwr_pin  = (uint8_t)pwr_pin;
+  config->rst_pin  = (uint8_t)rst_pin;
+  config->cs_pin   = (uint8_t)cs_pin;
+  config->sclk_pin = (uint8_t)sclk_pin;
+  config->d0_pin   = (uint8_t)d0_pin;
 
   mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, config));
 
@@ -41,7 +41,7 @@ mrb_co5300_pwr_write(mrb_state *mrb, mrb_value self)
   co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_pwr_write(config, value);
+  CO5300_pwr_write(config, (uint8_t)value);
   return mrb_nil_value();
 }
 
@@ -51,7 +51,7 @@ mrb_co5300_rst_write(mrb_state *mrb, mrb_value self)
   co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_rst_write(config, value);
+  CO5300_rst_write(config, (uint8_t)value);
   return mrb_nil_value();
 }
 
@@ -61,7 +61,7 @@ mrb_co5300_cs_write(mrb_state *mrb, mrb_value self)
   co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_cs_write(config, value);
+  CO5300_cs_write(config, (uint8_t)value);
   return mrb_nil_value();
 }
 
@@ -71,7 +71,7 @@ mrb_co5300_qspi1_write_byte(mrb_state *mrb, mrb_value self)
   co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_qspi1_write_byte(config, value);
+  CO5300_qspi1_write_byte(config, (uint8_t)value);
   return mrb_nil_value();
 }
 
@@ -81,7 +81,7 @@ mrb_co5300_qspi4_write_byte(mrb_state *mrb, mrb_value self)
   co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_qspi4_write_byte(config, value);
+  CO5300_qspi4_write_byte(config, (uint8_t)value);
   return mrb_nil_value();
 }
 
