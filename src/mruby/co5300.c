@@ -8,6 +8,7 @@
 static void
 mrb_co5300_free(mrb_state *mrb, void *ptr)
 {
+  CO5300_deinit((co5300_config_t *)ptr);
   mrb_free(mrb, ptr);
 }
 
