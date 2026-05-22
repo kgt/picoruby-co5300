@@ -36,7 +36,7 @@ class CO5300
     set_window x, y, w, h
     start_qspi do
       qspi1_write_bytes 0x32, 0x00, 0x2c, 0x00
-      qspi4_write_bytes *color * w * h
+      fill color, w * h
     end
   end
 

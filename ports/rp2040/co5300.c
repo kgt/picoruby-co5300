@@ -5,6 +5,17 @@
 #include "../../include/co5300.h"
 #include "co5300_qspi.pio.h"
 
+static int dma_chan;
+static dma_channel_config_t dma_config;
+
+static void
+dma_start(uint8_t *buf, uint32_t len, bool blocking)
+{
+  dma_channel_wait_for_finish_blocking(dma_chan);
+  dma_channel_transfer_from_buffer_now(dma_chan, buf, len);
+  if (blocking) dma_channel_wait_for_finish_blocking(dma_chan);
+}
+
 void
 CO5300_init(co5300_config_t *config)
 {
@@ -24,7 +35,39 @@ CO5300_init(co5300_config_t *config)
   config->sm      = sm;
   config->offset  = offset;
 
+  dma_chan = dma_claim_unused_channel(true);
+  dma_config = dma_channel_get_default_config(dma_chan);
+  channel_config_set_transfer_data_size(&dma_config, DMA_SIZE_8);
+  channel_config_set_read_increment(&dma_config, true);
+  channel_config_set_write_increment(&dma_config, false);
+  channel_config_set_dreq(&dma_config, pio_get_dreq(pio, sm, true));
+  dma_channel_set_write_addr(dma_chan, &pio->txf[sm], false);
+  dma_channel_set_config(dma_chan, &dma_config, false);
+
   return;
+}
+
+void
+CO5300_fill(co5300_config_t *config, uint32_t color, uint32_t count)
+{
+  uint32_t px_len = CO5300_BUF_LEN / 3;
+  if (count < px_len) px_len = count;
+  uint32_t buf_len = px_len * 3;
+
+  uint8_t r = (color >> 16) & 0xFF;
+  uint8_t g = (color >> 8) & 0xFF;
+  uint8_t b = color & 0xFF;
+  for (uint32_t i = 0; i < buf_len; i += 3) {
+    config->buf[i]     = r;
+    config->buf[i + 1] = g;
+    config->buf[i + 2] = b;
+  }
+
+  uint32_t byte = count * 3;
+  for (uint32_t sent = 0; sent < byte; sent += buf_len) {
+    uint32_t remain = byte - sent;
+    dma_start(config->buf, remain < buf_len ? remain : buf_len, true);
+  }
 }
 
 void
@@ -65,5 +108,6 @@ CO5300_qspi4_write_byte(co5300_config_t *config, uint8_t value)
 void
 CO5300_deinit(co5300_config_t *config)
 {
+  dma_channel_unclaim(dma_chan);
   pio_remove_program_and_unclaim_sm(&co5300_qspi_program, pio_get_instance(config->pio_num), config->sm, config->offset);
 }

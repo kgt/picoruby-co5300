@@ -8,8 +8,10 @@
 static void
 mrb_co5300_free(mrb_state *mrb, void *ptr)
 {
-  CO5300_deinit((co5300_config_t *)ptr);
-  mrb_free(mrb, ptr);
+  co5300_config_t *config = (co5300_config_t *)ptr;
+  CO5300_deinit(config);
+  mrb_free(mrb, config->buf);
+  mrb_free(mrb, config);
 }
 
 struct mrb_data_type mrb_co5300_type = {
@@ -28,12 +30,31 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
   config->cs_pin   = (uint8_t)cs_pin;
   config->sclk_pin = (uint8_t)sclk_pin;
   config->d0_pin   = (uint8_t)d0_pin;
+  config->buf      = (uint8_t *)mrb_malloc(mrb, sizeof(uint8_t) * CO5300_BUF_LEN);
 
   mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, config));
 
   CO5300_init(config);
 
   return self;
+}
+
+static mrb_value
+mrb_co5300_fill(mrb_state *mrb, mrb_value self)
+{
+  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_value color_ary;
+  mrb_int count;
+  mrb_get_args(mrb, "Ai", &color_ary, &count);
+
+  uint8_t r = (uint8_t)mrb_integer(mrb_ary_ref(mrb, color_ary, 0));
+  uint8_t g = (uint8_t)mrb_integer(mrb_ary_ref(mrb, color_ary, 1));
+  uint8_t b = (uint8_t)mrb_integer(mrb_ary_ref(mrb, color_ary, 2));
+  uint32_t color = (r << 16) | (g << 8) | b;
+
+  CO5300_fill(config, color, (uint32_t)count);
+
+  return mrb_nil_value();
 }
 
 static mrb_value
@@ -94,6 +115,7 @@ mrb_picoruby_co5300_gem_init(mrb_state* mrb)
   MRB_SET_INSTANCE_TT(class_CO5300, MRB_TT_CDATA);
 
   mrb_define_class_method_id(mrb, class_CO5300, MRB_SYM(init), mrb_co5300_s_init, MRB_ARGS_REQ(5));
+  mrb_define_method_id(mrb, class_CO5300, MRB_SYM(fill), mrb_co5300_fill, MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(pwr_write), mrb_co5300_pwr_write, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(rst_write), mrb_co5300_rst_write, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(cs_write), mrb_co5300_cs_write, MRB_ARGS_REQ(1));
