@@ -8,6 +8,7 @@
 typedef struct {
   int     id;
   uint8_t *buf;
+  size_t  buf_len;
 } mrb_co5300_t;
 
 static void
@@ -35,17 +36,16 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
   config.cs_pin   = (uint8_t)cs_pin;
   config.sclk_pin = (uint8_t)sclk_pin;
   config.d0_pin   = (uint8_t)d0_pin;
-  config.buf      = (uint8_t *)mrb_malloc(mrb, CO5300_BUF_LEN);
 
   int id = CO5300_init(&config);
   if (id < 0) {
-    mrb_free(mrb, config.buf);
     mrb_raise(mrb, E_RUNTIME_ERROR, "No handler available");
   }
 
   mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_malloc(mrb, sizeof(mrb_co5300_t));
-  co5300->id  = id;
-  co5300->buf = config.buf;
+  co5300->id      = id;
+  co5300->buf     = (uint8_t *)mrb_malloc(mrb, CO5300_BUF_LEN);
+  co5300->buf_len = CO5300_BUF_LEN;
 
   mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, co5300));
 
@@ -65,7 +65,7 @@ mrb_co5300_fill(mrb_state *mrb, mrb_value self)
   uint8_t b = (uint8_t)mrb_integer(mrb_ary_ref(mrb, color_ary, 2));
   uint32_t color = (r << 16) | (g << 8) | b;
 
-  CO5300_fill(co5300->id, color, (uint32_t)count);
+  fill(co5300->id, color, (size_t)count, co5300->buf, co5300->buf_len);
 
   return mrb_nil_value();
 }

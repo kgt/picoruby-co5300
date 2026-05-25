@@ -18,14 +18,6 @@ typedef struct {
 
 static co5300_handler_t handlers[MAX_CO5300_HANDLERS];
 
-static void
-dma_start(uint dma_chan, uint8_t *buf, uint32_t len, bool blocking)
-{
-  dma_channel_wait_for_finish_blocking(dma_chan);
-  dma_channel_transfer_from_buffer_now(dma_chan, buf, len);
-  if (blocking) dma_channel_wait_for_finish_blocking(dma_chan);
-}
-
 int
 CO5300_init(const co5300_config_t *config)
 {
@@ -66,26 +58,11 @@ CO5300_init(const co5300_config_t *config)
 }
 
 void
-CO5300_fill(int id, uint32_t color, uint32_t count)
+CO5300_flush_buffer(int id, const uint8_t *buf, size_t buf_len, bool blocking)
 {
-  uint32_t px_len = CO5300_BUF_LEN / 3;
-  if (count < px_len) px_len = count;
-  uint32_t buf_len = px_len * 3;
-
-  uint8_t r = (color >> 16) & 0xFF;
-  uint8_t g = (color >> 8) & 0xFF;
-  uint8_t b = color & 0xFF;
-  for (uint32_t i = 0; i < buf_len; i += 3) {
-    handlers[id].config.buf[i]     = r;
-    handlers[id].config.buf[i + 1] = g;
-    handlers[id].config.buf[i + 2] = b;
-  }
-
-  uint32_t byte = count * 3;
-  for (uint32_t sent = 0; sent < byte; sent += buf_len) {
-    uint32_t remain = byte - sent;
-    dma_start(handlers[id].dma_chan, handlers[id].config.buf, remain < buf_len ? remain : buf_len, true);
-  }
+  dma_channel_wait_for_finish_blocking(handlers[id].dma_chan);
+  dma_channel_transfer_from_buffer_now(handlers[id].dma_chan, buf, buf_len);
+  if (blocking) dma_channel_wait_for_finish_blocking(handlers[id].dma_chan);
 }
 
 void
