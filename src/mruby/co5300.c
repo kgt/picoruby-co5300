@@ -37,8 +37,14 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
   config.d0_pin   = (uint8_t)d0_pin;
   config.buf      = (uint8_t *)mrb_malloc(mrb, CO5300_BUF_LEN);
 
+  int id = CO5300_init(&config);
+  if (id < 0) {
+    mrb_free(mrb, config.buf);
+    mrb_raise(mrb, E_RUNTIME_ERROR, "No handler available");
+  }
+
   mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_malloc(mrb, sizeof(mrb_co5300_t));
-  co5300->id  = CO5300_init(&config);
+  co5300->id  = id;
   co5300->buf = config.buf;
 
   mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, co5300));
