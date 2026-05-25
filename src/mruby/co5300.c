@@ -5,13 +5,18 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 
+typedef struct {
+  int     id;
+  uint8_t *buf;
+} mrb_co5300_t;
+
 static void
-mrb_co5300_free(mrb_state *mrb, void *ptr)
+mrb_co5300_free(mrb_state *mrb, void *p)
 {
-  co5300_config_t *config = (co5300_config_t *)ptr;
-  CO5300_deinit(config);
-  mrb_free(mrb, config->buf);
-  mrb_free(mrb, config);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)p;
+  CO5300_deinit(co5300->id);
+  mrb_free(mrb, co5300->buf);
+  mrb_free(mrb, co5300);
 }
 
 struct mrb_data_type mrb_co5300_type = {
@@ -24,17 +29,19 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
   mrb_int pwr_pin, rst_pin, cs_pin, sclk_pin, d0_pin;
   mrb_get_args(mrb, "iiiii", &pwr_pin, &rst_pin, &cs_pin, &sclk_pin, &d0_pin);
 
-  co5300_config_t *config = (co5300_config_t *)mrb_malloc(mrb, sizeof(co5300_config_t));
-  config->pwr_pin  = (uint8_t)pwr_pin;
-  config->rst_pin  = (uint8_t)rst_pin;
-  config->cs_pin   = (uint8_t)cs_pin;
-  config->sclk_pin = (uint8_t)sclk_pin;
-  config->d0_pin   = (uint8_t)d0_pin;
-  config->buf      = (uint8_t *)mrb_malloc(mrb, sizeof(uint8_t) * CO5300_BUF_LEN);
+  co5300_config_t config;
+  config.pwr_pin  = (uint8_t)pwr_pin;
+  config.rst_pin  = (uint8_t)rst_pin;
+  config.cs_pin   = (uint8_t)cs_pin;
+  config.sclk_pin = (uint8_t)sclk_pin;
+  config.d0_pin   = (uint8_t)d0_pin;
+  config.buf      = (uint8_t *)mrb_malloc(mrb, CO5300_BUF_LEN);
 
-  mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, config));
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_malloc(mrb, sizeof(mrb_co5300_t));
+  co5300->id  = CO5300_init(&config);
+  co5300->buf = config.buf;
 
-  CO5300_init(config);
+  mrb_value self = mrb_obj_value(Data_Wrap_Struct(mrb, mrb_class_ptr(klass), &mrb_co5300_type, co5300));
 
   return self;
 }
@@ -42,7 +49,7 @@ mrb_co5300_s_init(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_co5300_fill(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_value color_ary;
   mrb_int count;
   mrb_get_args(mrb, "Ai", &color_ary, &count);
@@ -52,7 +59,7 @@ mrb_co5300_fill(mrb_state *mrb, mrb_value self)
   uint8_t b = (uint8_t)mrb_integer(mrb_ary_ref(mrb, color_ary, 2));
   uint32_t color = (r << 16) | (g << 8) | b;
 
-  CO5300_fill(config, color, (uint32_t)count);
+  CO5300_fill(co5300->id, color, (uint32_t)count);
 
   return mrb_nil_value();
 }
@@ -60,50 +67,50 @@ mrb_co5300_fill(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_co5300_pwr_write(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_pwr_write(config, (uint8_t)value);
+  CO5300_pwr_write(co5300->id, (uint8_t)value);
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_co5300_rst_write(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_rst_write(config, (uint8_t)value);
+  CO5300_rst_write(co5300->id, (uint8_t)value);
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_co5300_cs_write(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_cs_write(config, (uint8_t)value);
+  CO5300_cs_write(co5300->id, (uint8_t)value);
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_co5300_qspi1_write_byte(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_qspi1_write_byte(config, (uint8_t)value);
+  CO5300_qspi1_write_byte(co5300->id, (uint8_t)value);
   return mrb_nil_value();
 }
 
 static mrb_value
 mrb_co5300_qspi4_write_byte(mrb_state *mrb, mrb_value self)
 {
-  co5300_config_t *config = (co5300_config_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
   mrb_int value;
   mrb_get_args(mrb, "i", &value);
-  CO5300_qspi4_write_byte(config, (uint8_t)value);
+  CO5300_qspi4_write_byte(co5300->id, (uint8_t)value);
   return mrb_nil_value();
 }
 
