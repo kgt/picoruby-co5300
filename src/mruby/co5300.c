@@ -71,6 +71,29 @@ mrb_co5300_fill(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_co5300_draw_text(mrb_state *mrb, mrb_value self)
+{
+  mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
+  char *text;
+  mrb_value fg_ary, bg_ary;
+  mrb_get_args(mrb, "zAA", &text, &fg_ary, &bg_ary);
+
+  uint8_t fg_r = (uint8_t)mrb_integer(mrb_ary_ref(mrb, fg_ary, 0));
+  uint8_t fg_g = (uint8_t)mrb_integer(mrb_ary_ref(mrb, fg_ary, 1));
+  uint8_t fg_b = (uint8_t)mrb_integer(mrb_ary_ref(mrb, fg_ary, 2));
+  uint32_t fg_color = (fg_r << 16) | (fg_g << 8) | fg_b;
+
+  uint8_t bg_r = (uint8_t)mrb_integer(mrb_ary_ref(mrb, bg_ary, 0));
+  uint8_t bg_g = (uint8_t)mrb_integer(mrb_ary_ref(mrb, bg_ary, 1));
+  uint8_t bg_b = (uint8_t)mrb_integer(mrb_ary_ref(mrb, bg_ary, 2));
+  uint32_t bg_color = (bg_r << 16) | (bg_g << 8) | bg_b;
+
+  draw_text(co5300->id, text, fg_color, bg_color, co5300->buf, co5300->buf_len);
+
+  return mrb_nil_value();
+}
+
+static mrb_value
 mrb_co5300_pwr_write(mrb_state *mrb, mrb_value self)
 {
   mrb_co5300_t *co5300 = (mrb_co5300_t *)mrb_data_get_ptr(mrb, self, &mrb_co5300_type);
@@ -129,6 +152,7 @@ mrb_picoruby_co5300_gem_init(mrb_state* mrb)
 
   mrb_define_class_method_id(mrb, class_CO5300, MRB_SYM(init), mrb_co5300_s_init, MRB_ARGS_REQ(5));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(fill), mrb_co5300_fill, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, class_CO5300, MRB_SYM(_draw_text), mrb_co5300_draw_text, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(pwr_write), mrb_co5300_pwr_write, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(rst_write), mrb_co5300_rst_write, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, class_CO5300, MRB_SYM(cs_write), mrb_co5300_cs_write, MRB_ARGS_REQ(1));

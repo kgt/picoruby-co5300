@@ -40,6 +40,16 @@ class CO5300
     end
   end
 
+  def draw_text(text, x:, y:, fg_color:, bg_color:)
+    return if text.nil? || text.empty?
+
+    set_window x, y, text.length * 16, 32
+    start_qspi do
+      qspi1_write_bytes 0x32, 0x00, 0x2c, 0x00
+      _draw_text text, fg_color, bg_color
+    end
+  end
+
   def send_command(command, *params)
     start_qspi do
       qspi1_write_bytes 0x02, 0x00, command, 0x00, *params
